@@ -7,18 +7,52 @@ categories: [one, two]
 
 
 {% highlight ruby %}
-library(dplyr); library(ggmap); library(stringr); library(maps)
-#=== Read the data file
-medOrganization = read.csv("/media/akash/0C749DFF749DEBA8/Users/Akash/Documents/Data/Medicare_DoctorPayment/Medicare_MedOrganization_MeanPayments.csv")
-#===Calculate the number of medical organization in each state
-stateMedOrg = medOrganization %>% select(Med_Organization_Name, Med_Organization_State)
+library(tidyverse); library(mapdata); library(dplyr); library(ggmap); library(stringr); library(maps)
+#= Reading the data
+medicareData = read_delim("/media/akash/0C749DFF749DEBA8/Users/Akash/Documents/Data/Medicare_DoctorPayment/Medicare_Provider_Util_Payment_PUF_CY2013.txt", delim = "\t")
+
+#= Removing the first row as it contains no information (it is about copyright)
+medicareData = medicareData[2:nrow(medicareData), ]
+
+#= Changing the type of variables
+medicareData = mutate(medicareData, NPPES_PROVIDER_CITY = as.factor(NPPES_PROVIDER_CITY),  
+                      NPPES_PROVIDER_STATE = as.factor(NPPES_PROVIDER_STATE),
+                      NPPES_PROVIDER_COUNTRY = as.factor(NPPES_PROVIDER_COUNTRY),  
+                      NPPES_ENTITY_CODE = as.factor(NPPES_ENTITY_CODE),
+                      PROVIDER_TYPE = as.factor( PROVIDER_TYPE),  
+                      MEDICARE_PARTICIPATION_INDICATOR = as.factor(MEDICARE_PARTICIPATION_INDICATOR), 
+                      PLACE_OF_SERVICE = as.factor(PLACE_OF_SERVICE),
+                      HCPCS_CODE = as.factor(HCPCS_CODE),
+                      BENE_UNIQUE_CNT = as.numeric(BENE_UNIQUE_CNT),
+                      BENE_DAY_SRVC_CNT = as.numeric(BENE_DAY_SRVC_CNT),
+                      STDEV_MEDICARE_ALLOWED_AMT = as.numeric(STDEV_MEDICARE_ALLOWED_AMT),
+                      STDEV_SUBMITTED_CHRG_AMT = as.numeric(STDEV_SUBMITTED_CHRG_AMT),
+                      STDEV_MEDICARE_PAYMENT_AMT = as.numeric(STDEV_MEDICARE_PAYMENT_AMT))
+
+#= Considering only organization (such as hospitals, lab etc.)
+careOrganization = medicareData %>% filter(NPPES_ENTITY_CODE == "O")
+rm(medicareData)
+
+#= Calculating the mean and halfwidth of medicare payment per service
+careOrganization = careOrganization%>%
+  mutate(PaymentMin = AVERAGE_MEDICARE_PAYMENT_AMT - 1.96*STDEV_MEDICARE_PAYMENT_AMT,
+         PaymentMax = AVERAGE_MEDICARE_PAYMENT_AMT + 1.96*STDEV_MEDICARE_PAYMENT_AMT,
+         PaymentMean = AVERAGE_MEDICARE_PAYMENT_AMT)
+
+#= Calculating the total payment
+careOrganization = mutate(careOrganization, TotalPayment = PaymentMean*LINE_SRVC_CNT)
+
+
+stateMedOrg = careOrganization %>% select(Med_Organization_Name = NPPES_PROVIDER_LAST_ORG_NAME, 
+                                          Med_Organization_State = NPPES_PROVIDER_STATE)
+
 stateMedOrg = stateMedOrg[!duplicated(stateMedOrg), ]
+#= Calculate the number of medical organization in each state
 statesMedOrg = as.data.frame(table(stateMedOrg$Med_Organization_State))
 names(statesMedOrg) = c("State", "NumMedOrg")
 statesMedOrg$NumMedOrg = as.numeric(statesMedOrg$NumMedOrg)
 
-
-#===Extracting the longitude and latitude of US states bounderies
+#= Extracting the longitude and latitude of US states bounderies
 statesUSA = map_data("state") # Function of ggplot2; it uses map packages such as "maps", "mapdata"
 statesUSA$StateAbb = str_to_title(statesUSA$region) # To transform the state names into abbreviation
 statesUSA$StateAbb = state.abb[charmatch(statesUSA$StateAbb,  state.name)]
@@ -27,7 +61,11 @@ statesUSA = statesUSA %>% filter(region != "district of columbia")
 statesUSA = merge(x = statesUSA, y = statesMedOrg, by.x = "StateAbb", by.y = "State")
 
 #===Plot map
-ggplot(data = statesUSA) + geom_polygon(mapping = aes(x = long, y = lat, group = group, fill = NumMedOrg), color = "white") +theme_bw() + theme(axis.text = element_blank(),axis.line = element_blank(),axis.ticks = element_blank(),panel.border = element_blank(), panel.grid = element_blank(), axis.title = element_blank())
+base1 = ggplot(data = statesUSA) + geom_polygon(mapping = aes(x = long, y = lat, group = group, fill = NumMedOrg), color = "white") +theme_bw() + theme(axis.text = element_blank(),axis.line = element_blank(),axis.ticks = element_blank(),
+                                                                                                                                                        panel.border = element_blank(),
+                                                                                                                                                        panel.grid = element_blank(),
+                                                                                                                                                        axis.title = element_blank())
+
 {% endhighlight %}
 
 
