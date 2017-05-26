@@ -1,10 +1,11 @@
 ---
 layout: post
-title:  "Welcome to Jekyll!"
-categories: jekyll update
+title:  "Number of Medical "
 img: first-blog-post-winning.jpg
 categories: [one, two]
 ---
+
+
 {% highlight ruby %}
 library(dplyr); library(ggmap); library(stringr); library(maps)
 #=== Read the data file
