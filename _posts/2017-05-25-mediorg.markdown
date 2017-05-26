@@ -5,7 +5,7 @@ img: first-blog-post-winning.jpg
 categories: [one, two]
 ---
 
-
+This post is desined to illustrate how to use ggplot to create map
 {% highlight ruby %}
 library(tidyverse); library(mapdata); library(dplyr); library(ggmap); library(stringr); library(maps)
 #= Reading the data
