@@ -5,23 +5,29 @@ categories: jekyll update
 img: first-blog-post-winning.jpg
 categories: [one, two]
 ---
-You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
-
-To add new posts, simply add a file in the `_posts` directory that follows the convention `YYYY-MM-DD-name-of-post.ext` and includes the necessary front matter. Take a look at the source for this post to get an idea about how it works.
-
-Jekyll also offers powerful support for code snippets:
-
 {% highlight ruby %}
-def print_hi(name)
-  puts "Hi, #{name}"
-end
-print_hi('Tom')
-#=> prints 'Hi, Tom' to STDOUT.
+library(dplyr); library(ggmap); library(stringr); library(maps)
+#=== Read the data file
+medOrganization = read.csv("/media/akash/0C749DFF749DEBA8/Users/Akash/Documents/Data/Medicare_DoctorPayment/Medicare_MedOrganization_MeanPayments.csv")
+#===Calculate the number of medical organization in each state
+stateMedOrg = medOrganization %>% select(Med_Organization_Name, Med_Organization_State)
+stateMedOrg = stateMedOrg[!duplicated(stateMedOrg), ]
+statesMedOrg = as.data.frame(table(stateMedOrg$Med_Organization_State))
+names(statesMedOrg) = c("State", "NumMedOrg")
+statesMedOrg$NumMedOrg = as.numeric(statesMedOrg$NumMedOrg)
+
+
+#===Extracting the longitude and latitude of US states bounderies
+statesUSA = map_data("state") # Function of ggplot2; it uses map packages such as "maps", "mapdata"
+statesUSA$StateAbb = str_to_title(statesUSA$region) # To transform the state names into abbreviation
+statesUSA$StateAbb = state.abb[charmatch(statesUSA$StateAbb,  state.name)]
+statesUSA$StateAbb = as.factor(statesUSA$StateAbb)
+statesUSA = statesUSA %>% filter(region != "district of columbia")
+statesUSA = merge(x = statesUSA, y = statesMedOrg, by.x = "StateAbb", by.y = "State")
+
+#===Plot map
+ggplot(data = statesUSA) + geom_polygon(mapping = aes(x = long, y = lat, group = group, fill = NumMedOrg), color = "white") +theme_bw() + theme(axis.text = element_blank(),axis.line = element_blank(),axis.ticks = element_blank(),panel.border = element_blank(), panel.grid = element_blank(), axis.title = element_blank())
 {% endhighlight %}
 
-Check out the [Jekyll docs][jekyll-docs] for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll’s GitHub repo][jekyll-gh]. If you have questions, you can ask them on [Jekyll Talk][jekyll-talk].
 
-[jekyll-docs]: http://jekyllrb.com/docs/home
-[jekyll-gh]:   https://github.com/jekyll/jekyll
-[jekyll-talk]: https://talk.jekyllrb.com/
 
